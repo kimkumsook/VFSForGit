@@ -61,19 +61,35 @@ namespace PrjFSLib.Linux
                 HandlePermEvent = this.preventGCOnPermEventDelegate = new ProjFS.EventHandler(this.HandlePermEvent)
             };
 
-            ProjFS fs = ProjFS.New(
+            // determine whether storageRootFullPath contains only .git and .gitattributes
+
+            string[] args;
+            if (IsUninitializedMount(storageRootFullPath))
+            {
+                args = new string[] { "-o", "initial" };
+            }
+            else
+            {
+                args = new string[] { };
+            }
+
+            this.projfs = ProjFS.New(
                 storageRootFullPath,
                 virtualizationRootFullPath,
-                handlers);
+                handlers,
+                args);
 
-            if (fs == null)
+            this.virtualizationRoot = virtualizationRootFullPath;
+
+            if (this.projfs == null)
             {
                 return Result.Invalid;
             }
 
-            if (fs.Start() != 0)
+            if (this.projfs.Start() != 0)
             {
-                fs.Stop();
+                this.projfs.Stop();
+                this.projfs = null;
                 return Result.Invalid;
             }
 
@@ -91,13 +107,11 @@ namespace PrjFSLib.Linux
 
                 if (watch.Elapsed > MountWaitTotal)
                 {
-                    fs.Stop();
+                    this.projfs.Stop();
+                    this.projfs = null;
                     return Result.Invalid;
                 }
             }
-
-            this.projfs = fs;
-            this.virtualizationRoot = virtualizationRootFullPath;
 
             return Result.Success;
         }
@@ -268,6 +282,31 @@ namespace PrjFSLib.Linux
             string relativeDirectoryPath)
         {
             throw new NotImplementedException();
+        }
+
+        private static bool IsUninitializedMount(string dir)
+        {
+            bool foundDotGit = false,
+                 foundDotGitattributes = false;
+
+            foreach (string path in Directory.EnumerateFileSystemEntries(dir))
+            {
+                string file = Path.GetFileName(path);
+                if (file == ".git")
+                {
+                    foundDotGit = true;
+                }
+                else if (file == ".gitattributes")
+                {
+                    foundDotGitattributes = true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            return foundDotGit && foundDotGitattributes;
         }
 
         private static Result RemoveFileOrDirectory(
