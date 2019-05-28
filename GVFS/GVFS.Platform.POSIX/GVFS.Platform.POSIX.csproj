@@ -19,7 +19,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\ProjFS.POSIX\PrjFSLib.POSIX.Managed\PrjFSLib.POSIX.Managed.csproj" />
     <ProjectReference Include="..\GVFS.Common\GVFS.Common.csproj" />
+    <ProjectReference Include="..\GVFS.Virtualization\GVFS.Virtualization.csproj" />
   </ItemGroup>
 
   <ItemGroup>

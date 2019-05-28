@@ -1,5 +1,6 @@
 using MirrorProvider.POSIX;
 using PrjFSLib.Linux;
+using PrjFSLib.POSIX;
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -8,7 +9,7 @@ namespace MirrorProvider.Linux
 {
     public class LinuxFileSystemVirtualizer : FileSystemVirtualizer
     {
-        private VirtualizationInstance virtualizationInstance = new VirtualizationInstance();
+        private VirtualizationInstance virtualizationInstance = new LinuxVirtualizationInstance();
 
         public override bool TryConvertVirtualizationRoot(string directory, out string error)
         {
@@ -144,9 +145,9 @@ namespace MirrorProvider.Linux
             byte[] contentId,
             int triggeringProcessId,
             string triggeringProcessName,
-            int fd)
+            IntPtr fileHandle)
         {
-            Console.WriteLine($"OnGetFileStream({commandId}, '{relativePath}', {contentId.Length}/{contentId[0]}:{contentId[1]}, {providerId.Length}/{providerId[0]}:{providerId[1]}, {triggeringProcessId}, {triggeringProcessName}, {fd})");
+            Console.WriteLine($"OnGetFileStream({commandId}, '{relativePath}', {contentId.Length}/{contentId[0]}:{contentId[1]}, {providerId.Length}/{providerId[0]}:{providerId[1]}, {triggeringProcessId}, {triggeringProcessName}, 0x{fileHandle.ToInt64():X})");
 
             if (!this.FileExists(relativePath))
             {
@@ -162,7 +163,7 @@ namespace MirrorProvider.Linux
                     (buffer, bytesToCopy) =>
                     {
                         Result result = this.virtualizationInstance.WriteFileContents(
-                            fd,
+                            fileHandle,
                             buffer,
                             (uint)bytesToCopy);
                         if (result != Result.Success)

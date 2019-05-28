@@ -12,6 +12,9 @@ PACKAGES=$ROOTDIR/packages
 
 PROJFS=$SRCDIR/ProjFS.Linux
 
+echo "Building ProjFS.POSIX packages..."
+$SRCDIR/ProjFS.POSIX/Scripts/Build.sh $CONFIGURATION || exit 1
+
 echo "Generating ProjFS.Linux constants..."
 "$SCRIPTDIR"/GenerateConstants.sh || exit 1
 

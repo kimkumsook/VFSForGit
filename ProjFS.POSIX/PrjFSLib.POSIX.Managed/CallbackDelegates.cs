@@ -1,6 +1,7 @@
+using System;
 using System.Runtime.InteropServices;
 
-namespace PrjFSLib.Linux
+namespace PrjFSLib.POSIX
 {
     // Callbacks
     public delegate Result EnumerateDirectoryCallback(
@@ -16,7 +17,7 @@ namespace PrjFSLib.Linux
         byte[] contentId,
         int triggeringProcessId,
         string triggeringProcessName,
-        int fd);
+        IntPtr fileHandle);
 
     public delegate void LogErrorCallback(
         string errorMessage);

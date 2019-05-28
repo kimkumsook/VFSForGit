@@ -4,14 +4,13 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
 using PrjFSLib.Linux.Interop;
+using PrjFSLib.POSIX;
 using static PrjFSLib.Linux.Interop.Errno;
 
 namespace PrjFSLib.Linux
 {
-    public class VirtualizationInstance
+    public class LinuxVirtualizationInstance : VirtualizationInstance
     {
-        public const int PlaceholderIdLength = 128;
-
         private static readonly TimeSpan MountWaitTick = TimeSpan.FromSeconds(0.2);
         private static readonly TimeSpan MountWaitTotal = TimeSpan.FromSeconds(30);
 
@@ -24,19 +23,7 @@ namespace PrjFSLib.Linux
         private ProjFS.EventHandler preventGCOnNotifyEventDelegate;
         private ProjFS.EventHandler preventGCOnPermEventDelegate;
 
-        // References held to these delegates via class properties
-        public virtual EnumerateDirectoryCallback OnEnumerateDirectory { get; set; }
-        public virtual GetFileStreamCallback OnGetFileStream { get; set; }
-        public virtual LogErrorCallback OnLogError { get; set; }
-
-        public virtual NotifyFileModified OnFileModified { get; set; }
-        public virtual NotifyFilePreConvertToFullEvent OnFilePreConvertToFull { get; set; }
-        public virtual NotifyPreDeleteEvent OnPreDelete { get; set; }
-        public virtual NotifyNewFileCreatedEvent OnNewFileCreated { get; set; }
-        public virtual NotifyFileRenamedEvent OnFileRenamed { get; set; }
-        public virtual NotifyHardLinkCreatedEvent OnHardLinkCreated { get; set; }
-
-        public virtual Result StartVirtualizationInstance(
+        public override Result StartVirtualizationInstance(
             string storageRootFullPath,
             string virtualizationRootFullPath,
             uint poolThreadCount)
@@ -73,7 +60,12 @@ namespace PrjFSLib.Linux
                 args = new string[] { };
             }
 
-            this.projfs = ProjFS.New(
+//// DEBUG chrisd
+            args = new string[] { "-o", "initial" };
+
+//// DEBUG chrisd
+//            this.projfs = ProjFS.New(
+            ProjFS fs = ProjFS.New(
                 storageRootFullPath,
                 virtualizationRootFullPath,
                 handlers,
@@ -81,14 +73,19 @@ namespace PrjFSLib.Linux
 
             this.virtualizationRoot = virtualizationRootFullPath;
 
-            if (this.projfs == null)
+//// DEBUG chrisd
+//            if (this.projfs == null)
+            if (fs == null)
             {
                 return Result.Invalid;
             }
 
-            if (this.projfs.Start() != 0)
+//// DEBUG chrisd
+//            if (this.projfs.Start() != 0)
+            if (fs.Start() != 0)
             {
-                this.projfs.Stop();
+                // this.projfs.Stop();
+                fs.Stop();
                 this.projfs = null;
                 return Result.Invalid;
             }
@@ -107,16 +104,20 @@ namespace PrjFSLib.Linux
 
                 if (watch.Elapsed > MountWaitTotal)
                 {
-                    this.projfs.Stop();
+//// DEBUG chrisd
+                    // this.projfs.Stop();
+                    fs.Stop();
                     this.projfs = null;
                     return Result.Invalid;
                 }
             }
 
+//// DEBUG chrisd
+            this.projfs = fs;
             return Result.Success;
         }
 
-        public virtual void StopVirtualizationInstance()
+        public override void StopVirtualizationInstance()
         {
             if (this.projfs == null)
             {
@@ -127,11 +128,13 @@ namespace PrjFSLib.Linux
             this.projfs = null;
         }
 
-        public virtual Result WriteFileContents(
-            int fd,
+        public override Result WriteFileContents(
+            IntPtr fileHandle,
             byte[] bytes,
             uint byteCount)
         {
+            int fd = Marshal.PtrToStructure<int>(fileHandle);
+
             if (!NativeFileWriter.TryWrite(fd, bytes, byteCount))
             {
                 return Result.EIOError;
@@ -140,7 +143,7 @@ namespace PrjFSLib.Linux
             return Result.Success;
         }
 
-        public virtual Result DeleteFile(
+        public override Result DeleteFile(
             string relativePath,
             UpdateType updateFlags,
             out UpdateFailureCause failureCause)
@@ -192,13 +195,13 @@ namespace PrjFSLib.Linux
             return result;
         }
 
-        public virtual Result WritePlaceholderDirectory(
+        public override Result WritePlaceholderDirectory(
             string relativePath)
         {
             return this.projfs.CreateProjDir(relativePath, Convert.ToUInt32("777", 8));
         }
 
-        public virtual Result WritePlaceholderFile(
+        public override Result WritePlaceholderFile(
             string relativePath,
             byte[] providerId,
             byte[] contentId,
@@ -219,7 +222,7 @@ namespace PrjFSLib.Linux
                 contentId);
         }
 
-        public virtual Result WriteSymLink(
+        public override Result WriteSymLink(
             string relativePath,
             string symLinkTarget)
         {
@@ -228,7 +231,7 @@ namespace PrjFSLib.Linux
                 symLinkTarget);
         }
 
-        public virtual Result UpdatePlaceholderIfNeeded(
+        public override Result UpdatePlaceholderIfNeeded(
             string relativePath,
             byte[] providerId,
             byte[] contentId,
@@ -254,7 +257,7 @@ namespace PrjFSLib.Linux
             return this.WritePlaceholderFile(relativePath, providerId, contentId, fileSize, fileMode);
         }
 
-        public virtual Result ReplacePlaceholderFileWithSymLink(
+        public override Result ReplacePlaceholderFileWithSymLink(
             string relativePath,
             string symLinkTarget,
             UpdateType updateFlags,
@@ -269,19 +272,6 @@ namespace PrjFSLib.Linux
             // TODO(Linux): try to handle races with hydration?
             failureCause = UpdateFailureCause.NoFailure;
             return this.WriteSymLink(relativePath, symLinkTarget);
-        }
-
-        public virtual Result CompleteCommand(
-            ulong commandId,
-            Result result)
-        {
-            throw new NotImplementedException();
-        }
-
-        public virtual Result ConvertDirectoryToPlaceholder(
-            string relativeDirectoryPath)
-        {
-            throw new NotImplementedException();
         }
 
         private static bool IsUninitializedMount(string dir)
@@ -388,6 +378,12 @@ namespace PrjFSLib.Linux
                 return 0;
             }
 
+//// DEBUG chrisd
+            if (this.projfs == null)
+            {
+                return -Result.EDriverNotLoaded.ToErrno();
+            }
+
             string triggeringProcessName = GetProcCmdline(ev.Pid);
             string relativePath = PtrToStringUTF8(ev.Path);
 
@@ -413,14 +409,20 @@ namespace PrjFSLib.Linux
 
                 if (result == Result.Success)
                 {
-                    result = this.OnGetFileStream(
-                        commandId: 0,
-                        relativePath: relativePath,
-                        providerId: providerId,
-                        contentId: contentId,
-                        triggeringProcessId: ev.Pid,
-                        triggeringProcessName: triggeringProcessName,
-                        fd: ev.Fd);
+                    unsafe
+                    {
+                        fixed (int* fileHandle = &ev.Fd)
+                        {
+                            result = this.OnGetFileStream(
+                                commandId: 0,
+                                relativePath: relativePath,
+                                providerId: providerId,
+                                contentId: contentId,
+                                triggeringProcessId: ev.Pid,
+                                triggeringProcessName: triggeringProcessName,
+                                fileHandle: (IntPtr)fileHandle);
+                        }
+                    }
                 }
             }
 

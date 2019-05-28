@@ -1,4 +1,4 @@
-namespace PrjFSLib.Linux
+namespace PrjFSLib.POSIX
 {
     public enum Result : uint
     {

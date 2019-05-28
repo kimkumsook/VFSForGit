@@ -1,6 +1,6 @@
 using System;
 
-namespace PrjFSLib.Linux
+namespace PrjFSLib.POSIX
 {
     [Flags]
     public enum NotificationType

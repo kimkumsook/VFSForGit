@@ -7,16 +7,9 @@
     <TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-  </PropertyGroup>
-
   <PropertyGroup>
-    <OutputPath>..\..\..\BuildOutput\ProjFS.Linux\PrjFSLib.Linux.Managed\bin\$(Platform)\$(Configuration)\</OutputPath>
-    <IntermediateOutputPath>..\..\..\BuildOutput\ProjFS.Linux\PrjFSLib.Linux.Managed\obj\$(Platform)\$(Configuration)\</IntermediateOutputPath>
+    <OutputPath>..\..\..\BuildOutput\ProjFS.POSIX\PrjFSLib.POSIX.Managed\bin\$(Platform)\$(Configuration)\</OutputPath>
+    <IntermediateOutputPath>..\..\..\BuildOutput\ProjFS.POSIX\PrjFSLib.POSIX.Managed\obj\$(Platform)\$(Configuration)\</IntermediateOutputPath>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -30,14 +23,6 @@
     <Optimize>true</Optimize>
     <DefineConstants>TRACE;RELEASE</DefineConstants>
   </PropertyGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\ProjFS.POSIX\PrjFSLib.POSIX.Managed\PrjFSLib.POSIX.Managed.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Interop\" />
-  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="StyleCop.Analyzers" Version="1.0.2">

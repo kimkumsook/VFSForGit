@@ -1,3 +1,5 @@
+using PrjFSLib.POSIX;
+
 namespace PrjFSLib.Linux.Interop
 {
     internal static partial class Errno
